@@ -1,0 +1,214 @@
+{
+    "metadata": {
+        "directorio": "/Users/kevinmoreno/Documents/Github/gocart",
+        "total_archivos": 59,
+        "total_ciclos": 1
+    },
+    "ciclos_detectados": [
+        [
+            "app/test/componenteb.jsx",
+            "app/test/componentea.jsx",
+            "app/test/componenteb.jsx"
+        ]
+    ],
+    "grafo_completo": {
+        "app/layout.jsx": [
+            "app/globals.css",
+            "app/app/storeprovider"
+        ],
+        "app/storeprovider.js": [
+            "lib/store.js"
+        ],
+        "app/test/componenteb.jsx": [
+            "app/test/componentea.jsx"
+        ],
+        "app/test/componentea.jsx": [
+            "app/test/componenteb.jsx"
+        ],
+        "app/admin/layout.jsx": [
+            "app/admin/components/admin/adminlayout"
+        ],
+        "app/admin/page.jsx": [
+            "app/admin/components/loading",
+            "app/admin/assets/assets",
+            "app/admin/components/ordersareachart"
+        ],
+        "app/admin/stores/page.jsx": [
+            "app/admin/stores/components/admin/storeinfo",
+            "app/admin/stores/assets/assets",
+            "app/admin/stores/components/loading"
+        ],
+        "app/admin/approve/page.jsx": [
+            "app/admin/approve/components/loading",
+            "app/admin/approve/components/admin/storeinfo",
+            "app/admin/approve/assets/assets"
+        ],
+        "app/admin/coupons/page.jsx": [
+            "app/admin/coupons/assets/assets"
+        ],
+        "app/(public)/layout.jsx": [
+            "app/(public)/components/navbar",
+            "app/(public)/components/banner",
+            "app/(public)/components/footer"
+        ],
+        "app/(public)/page.jsx": [
+            "app/(public)/components/newsletter",
+            "app/(public)/components/ourspec",
+            "app/(public)/components/bestselling",
+            "app/(public)/components/latestproducts",
+            "app/(public)/components/hero"
+        ],
+        "app/(public)/loading/page.jsx": [
+            "app/(public)/loading/components/loading"
+        ],
+        "app/(public)/shop/page.jsx": [
+            "app/(public)/shop/components/productcard"
+        ],
+        "app/(public)/shop/[username]/page.jsx": [
+            "app/(public)/shop/[username]/components/productcard",
+            "app/(public)/shop/[username]/components/loading",
+            "app/(public)/shop/[username]/assets/assets"
+        ],
+        "app/(public)/create-store/page.jsx": [
+            "app/(public)/create-store/assets/assets",
+            "app/(public)/create-store/components/loading"
+        ],
+        "app/(public)/product/[productid]/page.jsx": [
+            "app/(public)/product/[productid]/components/productdescription",
+            "app/(public)/product/[productid]/components/productdetails"
+        ],
+        "app/(public)/cart/page.jsx": [
+            "app/(public)/cart/components/counter",
+            "app/(public)/cart/components/ordersummary",
+            "app/(public)/cart/components/pagetitle",
+            "app/(public)/cart/lib/features/cart/cartslice"
+        ],
+        "app/(public)/orders/page.jsx": [
+            "app/(public)/orders/components/pagetitle",
+            "app/(public)/orders/components/orderitem",
+            "app/(public)/orders/assets/assets"
+        ],
+        "app/(public)/pricing/page.jsx": [],
+        "app/store/layout.jsx": [
+            "app/store/components/store/storelayout"
+        ],
+        "app/store/page.jsx": [
+            "app/store/components/loading",
+            "app/store/assets/assets"
+        ],
+        "app/store/manage-product/page.jsx": [
+            "app/store/manage-product/assets/assets",
+            "app/store/manage-product/components/loading"
+        ],
+        "app/store/add-product/page.jsx": [
+            "app/store/add-product/assets/assets"
+        ],
+        "app/store/orders/page.jsx": [
+            "app/store/orders/assets/assets",
+            "app/store/orders/components/loading"
+        ],
+        "components/ourspec.jsx": [
+            "components/assets/assets",
+            "components/title.jsx"
+        ],
+        "components/ordersummary.jsx": [
+            "components/addressmodal.jsx"
+        ],
+        "components/latestproducts.jsx": [
+            "components/productcard.jsx",
+            "components/title.jsx"
+        ],
+        "components/footer.jsx": [],
+        "components/addressmodal.jsx": [],
+        "components/categoriesmarquee.jsx": [
+            "components/assets/assets"
+        ],
+        "components/productdetails.jsx": [
+            "components/lib/features/cart/cartslice",
+            "components/counter.jsx"
+        ],
+        "components/rating.jsx": [],
+        "components/loading.jsx": [],
+        "components/banner.jsx": [],
+        "components/productdescription.jsx": [],
+        "components/navbar.jsx": [],
+        "components/title.jsx": [],
+        "components/hero.jsx": [
+            "components/categoriesmarquee.jsx",
+            "components/assets/assets"
+        ],
+        "components/bestselling.jsx": [
+            "components/productcard.jsx",
+            "components/title.jsx"
+        ],
+        "components/newsletter.jsx": [
+            "components/title.jsx"
+        ],
+        "components/counter.jsx": [
+            "components/lib/features/cart/cartslice"
+        ],
+        "components/productcard.jsx": [],
+        "components/ratingmodal.jsx": [],
+        "components/ordersareachart.jsx": [],
+        "components/orderitem.jsx": [
+            "components/rating.jsx",
+            "components/ratingmodal.jsx"
+        ],
+        "components/pagetitle.jsx": [],
+        "components/admin/adminlayout.jsx": [
+            "components/admin/adminsidebar.jsx",
+            "components/loading.jsx",
+            "components/admin/adminnavbar.jsx"
+        ],
+        "components/admin/storeinfo.jsx": [],
+        "components/admin/adminnavbar.jsx": [],
+        "components/admin/adminsidebar.jsx": [
+            "components/admin/assets/assets"
+        ],
+        "components/store/storelayout.jsx": [
+            "components/loading.jsx",
+            "components/store/assets/assets",
+            "components/store/storesidebar.jsx",
+            "components/store/storenavbar.jsx"
+        ],
+        "components/store/storesidebar.jsx": [],
+        "components/store/storenavbar.jsx": [],
+        "lib/store.js": [
+            "lib/features/product/productslice.js",
+            "lib/features/rating/ratingslice.js",
+            "lib/features/cart/cartslice.js",
+            "lib/features/address/addressslice.js"
+        ],
+        "lib/features/rating/ratingslice.js": [],
+        "lib/features/product/productslice.js": [
+            "lib/features/product/assets/assets"
+        ],
+        "lib/features/address/addressslice.js": [
+            "lib/features/address/assets/assets"
+        ],
+        "lib/features/cart/cartslice.js": [],
+        "assets/assets.js": [
+            "assets/product_img4.png",
+            "assets/product_img10.png",
+            "assets/happy_store.webp",
+            "assets/hero_product_img2.png",
+            "assets/product_img2.png",
+            "assets/product_img5.png",
+            "assets/product_img9.png",
+            "assets/hero_model_img.png",
+            "assets/hero_product_img1.png",
+            "assets/profile_pic2.jpg",
+            "assets/profile_pic3.jpg",
+            "assets/product_img8.png",
+            "assets/product_img3.png",
+            "assets/product_img1.png",
+            "assets/product_img12.png",
+            "assets/product_img11.png",
+            "assets/gs_logo.jpg",
+            "assets/product_img6.png",
+            "assets/upload_area.svg",
+            "assets/product_img7.png",
+            "assets/profile_pic1.jpg"
+        ]
+    }
+}

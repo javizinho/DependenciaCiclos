@@ -28,7 +28,18 @@ export const assets = {
     product_img7, product_img8, product_img9, product_img10, product_img11, product_img12,
 }
 
-export const categories = ["Headphones", "Speakers", "Watch", "Earbuds", "Mouse", "Decoration"];
+export const categories = [
+    "Notebooks", 
+    "Perfumes Árabes", 
+    "Equipos Nacionales", 
+    "Tablets", 
+    "Fragancias de Nicho", 
+    "Componentes PC", 
+    "Camisetas Internacionales", 
+    "Auriculares", 
+    "Celulares", 
+    "Parlantes"
+];
 
 export const dummyRatingsData = [
     { id: "rat_1", rating: 4.2, review: "I was a bit skeptical at first, but this product turned out to be even better than I imagined. The quality feels premium, it's easy to use, and it delivers exactly what was promised. I've already recommended it to friends and will definitely purchase again in the future.", user: { name: 'Kristin Watson', image: profile_pic1 }, productId: "prod_1", createdAt: 'Sat Jul 19 2025 14:51:25 GMT+0530 (India Standard Time)', updatedAt: 'Sat Jul 19 2025 14:51:25 GMT+0530 (India Standard Time)', product: { name: 'Bluetooth Speakers', category:'Electronics', id:'prod_1'} },
@@ -245,9 +256,9 @@ export const productDummyData = [
 ];
 
 export const ourSpecsData = [
-    { title: "Free Shipping", description: "Enjoy fast, free delivery on every order no conditions, just reliable doorstep.", icon: SendIcon, accent: '#05DF72' },
-    { title: "7 Days easy Return", description: "Change your mind? No worries. Return any item within 7 days.", icon: ClockFadingIcon, accent: '#FF8904' },
-    { title: "24/7 Customer Support", description: "We're here for you. Get expert help with our customer support.", icon: HeadsetIcon, accent: '#A684FF' }
+    { title: "Envíos a Todo el País", description: "Recibe tus productos importados de forma rápida y segura en la puerta de tu casa. Logística confiable para cada uno de tus pedidos.", icon: SendIcon, accent: '#05DF72' },
+    { title: "Garantía de Satisfacción", description: "¿Cambiaste de opinión? No hay problema. Tienes 7 días para realizar devoluciones de forma sencilla y sin complicaciones.", icon: ClockFadingIcon, accent: '#FF8904' },
+    { title: "Soporte Especializado 24/7", description: "Estamos aquí para ayudarte. Recibe atención personalizada y experta en cualquier momento a través de nuestros canales oficiales.", icon: HeadsetIcon, accent: '#A684FF' }
 ]
 
 export const addressDummyData = {
