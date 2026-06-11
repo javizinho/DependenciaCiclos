@@ -1,149 +1,178 @@
-import os
-import re
 import json
 
-class AnalizadorDependenciasNextJS:
+class DeliveryDependencyAnalyzer:
+
+    DEPENDENCY_GRAPH = {
+        "app/page.tsx": [
+            "screens/HomeScreen",
+            "screens/CartScreen",
+            "screens/OrderScreen",
+        ],
+        "screens/HomeScreen": [
+            "components/RestaurantCard",
+            "hooks/useRestaurants",
+        ],
+        "screens/CartScreen": [
+            "components/ProductItem",
+            "hooks/useCart",
+        ],
+        "screens/OrderScreen": [
+            "components/OrderTracker",
+            "components/MapView",
+            "hooks/useOrder",
+        ],
+        "components/RestaurantCard": [
+            "hooks/useRestaurants",
+        ],
+        "components/ProductItem": [
+            "hooks/useCart",
+        ],
+        "components/OrderTracker": [
+            "hooks/useOrder",
+            "services/trackingApi",
+        ],
+        "components/MapView": [
+            "hooks/useLocation",
+            "services/trackingApi",
+        ],
+        # CYCLE: useCart ↔ useOrder
+        "hooks/useCart": [
+            "services/orderApi",
+            "hooks/useOrder",
+        ],
+        "hooks/useOrder": [
+            "services/orderApi",
+            "hooks/useCart",
+        ],
+        "hooks/useRestaurants": [
+            "services/restaurantApi",
+        ],
+        "hooks/useLocation": [
+            "services/trackingApi",
+        ],
+        "services/restaurantApi": [],
+        "services/orderApi": [],
+        "services/trackingApi": [],
+    }
+
+    DISPLAY_NAMES = {
+        "app/page.tsx":             "Inicio de la app",
+        "screens/HomeScreen":       "Pantalla principal",
+        "screens/CartScreen":       "Pantalla del carrito",
+        "screens/OrderScreen":      "Pantalla del pedido",
+        "components/RestaurantCard":"Tarjeta de restaurante",
+        "components/ProductItem":   "Ítem del menú",
+        "components/OrderTracker":  "Seguimiento del pedido",
+        "components/MapView":       "Mapa del repartidor",
+        "hooks/useRestaurants":     "useRestaurants",
+        "hooks/useCart":            "useCart",
+        "hooks/useOrder":           "useOrder",
+        "hooks/useLocation":        "useLocation",
+        "services/restaurantApi":   "API de restaurantes",
+        "services/orderApi":        "API de pedidos",
+        "services/trackingApi":     "API de rastreo GPS",
+    }
+
     def __init__(self):
-        self.raiz = os.getcwd()
-        self.grafo = {}
-        self.ciclos = []
-        self.alias_map = self._cargar_configuracion_paths()
+        self.graph = self.DEPENDENCY_GRAPH
+        self.cycles = []
 
-    def _cargar_configuracion_paths(self):
-        paths_config = {}
-        for nombre in ['tsconfig.json', 'jsconfig.json']:
-            ruta = os.path.join(self.raiz, nombre)
-            if os.path.exists(ruta):
-                try:
-                    with open(ruta, 'r', encoding='utf-8') as f:
-                        contenido = f.read()
-                        contenido_limpio = re.sub(r'//.*|/\*[\s\S]*?\*/', '', contenido)
-                        data = json.loads(contenido_limpio)
-                        opts = data.get('compilerOptions', {})
-                        baseUrl = opts.get('baseUrl', '.')
-                        paths = opts.get('paths', {})
-                        for alias, destino in paths.items():
-                            clave = alias.replace('*', '')
-                            valor = destino[0].replace('*', '')
-                            paths_config[clave] = os.path.join(baseUrl, valor)
-                except Exception:
-                    pass
-        return paths_config
-
-    def resolver_ruta(self, import_path, archivo_origen):
-        for alias, real_path in self.alias_map.items():
-            if import_path.startswith(alias):
-                import_path = import_path.replace(alias, real_path)
-                break
-        
-        if import_path.startswith('.'):
-            dir_actual = os.path.dirname(archivo_origen)
-            import_path = os.path.normpath(os.path.join(dir_actual, import_path))
-
-        extensiones = ['.tsx', '.ts', '.jsx', '.js']
-        for ext in extensiones:
-            p1 = import_path + ext
-            if os.path.exists(os.path.join(self.raiz, p1)): 
-                return p1.lower()
-            
-            p2 = os.path.join(import_path, f'index{ext}')
-            if os.path.exists(os.path.join(self.raiz, p2)): 
-                return p2.lower()
-        
-        return import_path.lower()
-
-    def extraer_imports(self, ruta_abs):
-        importaciones = set()
-        try:
-            with open(ruta_abs, 'r', encoding='utf-8') as f:
-                contenido = f.read()
-                patrones = [
-                    r'from\s+[\'"](.+?)[\'"]',
-                    r'import\s+[\'"](.+?)[\'"]',
-                    r'require\([\'"](.+?)[\'"]\)'
-                ]
-                for p in patrones:
-                    for target in re.findall(p, contenido):
-                        if target.startswith('.') or any(target.startswith(a) for a in self.alias_map):
-                            ruta_rel_origen = os.path.relpath(ruta_abs, self.raiz)
-                            resuelto = self.resolver_ruta(target, ruta_rel_origen)
-                            importaciones.add(resuelto)
-        except Exception:
-            pass
-        return list(importaciones)
-
-    def construir_grafo(self):
-        ignorar = {'.next', 'node_modules', '.git', 'public', 'dist', 'out', '.vercel'}
-        for root, dirs, files in os.walk(self.raiz):
-            dirs[:] = [d for d in dirs if d not in ignorar]
-            for file in files:
-                if file.endswith(('.js', '.jsx', '.ts', '.tsx')):
-                    ruta_abs = os.path.join(root, file)
-                    ruta_rel = os.path.relpath(ruta_abs, self.raiz).lower()
-                    self.grafo[ruta_rel] = self.extraer_imports(ruta_abs)
-
-    def detectar_ciclos(self):
-        visitados = set()
-        pila_rec = set()
-        camino = []
+    def detect_cycles(self):
+        visited = set()
+        rec_stack = set()
+        path = []
 
         def dfs(u):
-            visitados.add(u)
-            pila_rec.add(u)
-            camino.append(u)
-
-            for v in self.grafo.get(u, []):
-                if v in pila_rec:
-                    idx = camino.index(v)
-                    nuevo_ciclo = camino[idx:] + [v]
-                    if not any(set(nuevo_ciclo) == set(c) for c in self.ciclos):
-                        self.ciclos.append(nuevo_ciclo)
-                elif v not in visitados and v in self.grafo:
+            visited.add(u)
+            rec_stack.add(u)
+            path.append(u)
+            for v in self.graph.get(u, []):
+                if v in rec_stack:
+                    idx = path.index(v)
+                    new_cycle = path[idx:] + [v]
+                    if not any(set(new_cycle) == set(c) for c in self.cycles):
+                        self.cycles.append(new_cycle)
+                elif v not in visited and v in self.graph:
                     dfs(v)
+            rec_stack.remove(u)
+            path.pop()
 
-            pila_rec.remove(u)
-            camino.pop()
+        for node in list(self.graph.keys()):
+            if node not in visited:
+                dfs(node)
 
-        for nodo in list(self.grafo.keys()):
-            if nodo not in visitados:
-                dfs(nodo)
-
-    def generar_entregables(self):
-        reporte = {
+    def generate_outputs(self):
+        report = {
             "metadata": {
-                "directorio": self.raiz,
-                "total_archivos": len(self.grafo),
-                "total_ciclos": len(self.ciclos)
+                "project": "Delivery App",
+                "total_modules": len(self.graph),
+                "total_cycles": len(self.cycles),
             },
-            "ciclos_detectados": self.ciclos,
-            "grafo_completo": self.grafo
+            "cycles_detected": self.cycles,
+            "full_graph": self.graph,
         }
-        with open('reporte_dependencias.json', 'w', encoding='utf-8') as f:
-            json.dump(reporte, f, indent=4)
+        with open("dependency_report.json", "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=4)
 
-        nodos_criticos = set(n for c in self.ciclos for n in c)
-        with open('grafo_visual.dot', 'w', encoding='utf-8') as f:
-            f.write('digraph G {\n')
-            f.write('  rankdir=LR; node [fontname="Arial", shape=rect, style=filled, fillcolor="#F0F0F0"];\n')
-            for u, vecinos in self.grafo.items():
-                u_style = 'fillcolor="#FFCCCC", color="#CC0000", penwidth=2' if u in nodos_criticos else ''
-                f.write(f'  "{u}" [{u_style}];\n')
-                for v in vecinos:
-                    if v in self.grafo:
-                        v_style = 'color="#CC0000", penwidth=2' if (u in nodos_criticos and v in nodos_criticos) else ''
-                        f.write(f'  "{u}" -> "{v}" [{v_style}];\n')
-            f.write('}\n')
+        critical_nodes = set(n for c in self.cycles for n in c)
 
-    def ejecutar(self):
-        print(f"\n" + "="*50)
-        print(f"🚀 INICIANDO ANÁLISIS: {os.path.basename(self.raiz)}")
-        print("="*50)
-        self.construir_grafo()
-        self.detectar_ciclos()
-        self.generar_entregables()
-        print(f"✅ Análisis completado.")
-        print(f"📂 Módulos: {len(self.grafo)} | ⚠️ Ciclos: {len(self.ciclos)}")
-        print("="*50 + "\n")
+        LAYER_COLORS = {
+            "Entrypoint": "#D8B4FE",
+            "Screens":    "#BFDBFE",
+            "Components": "#99F6E4",
+            "Hooks":      "#FDE68A",
+            "Services":   "#D1D5DB",
+        }
+
+        layers = {
+            "Entrypoint": ["app/page.tsx"],
+            "Screens":    [n for n in self.graph if n.startswith("screens/")],
+            "Components": [n for n in self.graph if n.startswith("components/")],
+            "Hooks":      [n for n in self.graph if n.startswith("hooks/")],
+            "Services":   [n for n in self.graph if n.startswith("services/")],
+        }
+
+        with open("dependency_graph.dot", "w", encoding="utf-8") as f:
+            f.write("digraph DeliveryApp {\n")
+            f.write('  rankdir=TB;\n')
+            f.write('  node [fontname="Arial", shape=rect, style=filled, fillcolor="#F0F0F0"];\n\n')
+
+            for layer, nodes in layers.items():
+                f.write(f'  subgraph cluster_{layer} {{\n')
+                f.write(f'    label="{layer}";\n')
+                f.write(f'    style=dashed;\n')
+                for node in nodes:
+                    color  = '#FFCCCC' if node in critical_nodes else LAYER_COLORS[layer]
+                    border = 'color="#CC0000", penwidth=2' if node in critical_nodes else 'color="#666666"'
+                    label  = self.DISPLAY_NAMES.get(node, node)
+                    f.write(f'    "{node}" [label="{label}", fillcolor="{color}", {border}];\n')
+                f.write("  }\n\n")
+
+            f.write("  // Edges\n")
+            for u, neighbors in self.graph.items():
+                for v in neighbors:
+                    if v in self.graph:
+                        is_cycle = (u in critical_nodes and v in critical_nodes)
+                        style = 'color="#CC0000", penwidth=2, style=dashed' if is_cycle else 'color="#555555"'
+                        f.write(f'  "{u}" -> "{v}" [{style}];\n')
+            f.write("}\n")
+
+    def run(self):
+        print("\n" + "="*52)
+        print("🚀  DEPENDENCY ANALYZER — Delivery App")
+        print("="*52)
+        self.detect_cycles()
+        self.generate_outputs()
+        print(f"✅  Modules analyzed : {len(self.graph)}")
+        print(f"⚠️   Cycles detected  : {len(self.cycles)}")
+        if self.cycles:
+            print("\n📛  Cycles found:")
+            for i, cycle in enumerate(self.cycles, 1):
+                print(f"   {i}. {' → '.join(cycle)}")
+        print("\n📄  Output files:")
+        print("   • dependency_report.json")
+        print("   • dependency_graph.dot")
+        print("="*52 + "\n")
 
 if __name__ == "__main__":
-    AnalizadorDependenciasNextJS().ejecutar()
+    DeliveryDependencyAnalyzer().run()

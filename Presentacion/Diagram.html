@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Delivery App — Dependency Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #0a0b0d;
+  --surface:  #111318;
+  --surface2: #191c24;
+  --border:   #23272f;
+  --border2:  #2e3340;
+  --text:     #e8eaf0;
+  --muted:    #6b7280;
+  --accent:   #6ee7b7;
+  --accent2:  #818cf8;
+  --danger:   #f87171;
+  --amber:    #fbbf24;
+  --purple:   #a78bfa;
+  --mono:     'DM Mono', monospace;
+  --display:  'Syne', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--display);min-height:100vh;overflow-x:hidden;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,11,13,.92);backdrop-filter:blur(12px);z-index:100;}
+.nav-logo{font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--accent);}
+.nav-logo span{color:var(--muted);}
+.nav-links{display:flex;gap:28px;}
+.nav-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;}
+.nav-links a:hover{color:var(--text);}
+
+/* HERO */
+.hero{padding:80px 40px 60px;max-width:860px;}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);border-radius:100px;padding:5px 14px;font-size:11px;font-family:var(--mono);color:var(--accent);margin-bottom:24px;}
+.hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-size:clamp(36px,6vw,64px);font-weight:800;line-height:1.05;letter-spacing:-.03em;margin-bottom:20px;}
+.hero h1 em{font-style:normal;color:var(--accent);}
+.hero p{font-size:16px;color:var(--muted);line-height:1.7;max-width:520px;}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);margin:0 40px;border-radius:14px;overflow:hidden;}
+.metric{background:var(--surface);padding:24px 28px;}
+.metric-val{font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.metric-val.danger{color:var(--danger);}
+.metric-val.accent{color:var(--accent);}
+.metric-lbl{font-size:12px;color:var(--muted);margin-top:6px;font-family:var(--mono);}
+
+/* SECTIONS */
+section{padding:60px 40px;}
+.section-label{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}
+.section-title{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-bottom:32px;}
+
+/* DASHBOARD */
+.dashboard{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+.graph-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.graph-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.graph-card-title{font-size:13px;font-weight:600;}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:100px;}
+.badge-danger{background:rgba(248,113,113,.12);color:var(--danger);border:1px solid rgba(248,113,113,.25);}
+.badge-ok{background:rgba(110,231,183,.1);color:var(--accent);border:1px solid rgba(110,231,183,.2);}
+#graph-svg{display:block;width:100%;height:420px;}
+.side-panels{display:flex;flex-direction:column;gap:12px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;}
+.panel-title{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.cycle-box{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:12px 14px;font-size:12px;font-family:var(--mono);color:var(--danger);line-height:1.8;}
+.fix-box{background:rgba(110,231,183,.06);border:1px solid rgba(110,231,183,.15);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:12px;font-family:var(--mono);color:var(--accent);}
+#node-detail{font-size:13px;color:var(--muted);line-height:1.7;min-height:80px;}
+.node-name-detail{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.dep-chip{display:inline-block;font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;margin:2px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);}
+.dep-chip.cyc{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--danger);}
+.dep-chip.used{background:rgba(129,140,248,.1);border-color:rgba(129,140,248,.25);color:var(--accent2);}
+.legend-row{display:flex;flex-wrap:wrap;gap:8px;}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--mono);color:var(--muted);}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* CODE SECTION */
+.code-tabs{display:flex;gap:2px;margin-bottom:0;border-bottom:1px solid var(--border);}
+.tab-btn{font-family:var(--mono);font-size:12px;padding:10px 20px;background:none;border:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.code-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.code-header{display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);gap:8px;}
+.dot{width:10px;height:10px;border-radius:50%;}
+.code-body{padding:24px;overflow-x:auto;}
+pre{font-family:var(--mono);font-size:13px;line-height:1.8;color:#cdd6f4;}
+.kw{color:#cba6f7;}
+.fn{color:#89b4fa;}
+.st{color:#a6e3a1;}
+.cm{color:#0822e4;}
+.nm{color:#fab387;}
+.py{color:#f38ba8;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px;}
+.step{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;}
+.step-num{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:12px;}
+.step-title{font-size:15px;font-weight:600;margin-bottom:8px;}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.7;}
+.step-code{margin-top:14px;background:var(--surface2);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;border:1px solid var(--border);}
+
+/* FOOTER */
+footer{padding:32px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+footer p{font-family:var(--mono);font-size:12px;color:var(--muted);}
+
+/* ANIMATIONS */
+.fade-in{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease;}
+.fade-in.visible{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">delivery<span>/</span>analyzer</div>
+  <div class="nav-links">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#code">Código</a>
+    <a href="#how">Cómo funciona</a>
+  </div>
+</nav>
+
+<div class="hero fade-in">
+  <div class="hero-tag">Python · Sin dependencias externas</div>
+  <h1>Análisis de <em>dependencias</em><br/>para tu app de delivery</h1>
+  <p>Detecta ciclos, visualiza capas y entiende cómo se conectan los módulos de tu aplicación. Solo Python estándar.</p>
+</div>
+
+<div class="metrics fade-in">
+  <div class="metric"><div class="metric-val accent">15</div><div class="metric-lbl">módulos</div></div>
+  <div class="metric"><div class="metric-val">22</div><div class="metric-lbl">dependencias</div></div>
+  <div class="metric"><div class="metric-val danger">1</div><div class="metric-lbl">ciclo detectado</div></div>
+  <div class="metric"><div class="metric-val">5</div><div class="metric-lbl">capas</div></div>
+</div>
+
+<!-- DASHBOARD -->
+<section id="dashboard">
+  <div class="section-label">Visualización</div>
+  <div class="section-title">Grafo interactivo</div>
+  <div class="dashboard">
+    <div class="graph-card">
+      <div class="graph-card-header">
+        <span class="graph-card-title">Delivery App — módulos y dependencias</span>
+        <span class="badge badge-danger">1 ciclo detectado</span>
+      </div>
+      <svg id="graph-svg" viewBox="0 0 640 420">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <g id="g-edges"></g>
+        <g id="g-nodes"></g>
+      </svg>
+      <div style="padding:12px 20px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--muted);">
+        Arrastra los nodos · Haz clic para ver detalles
+      </div>
+    </div>
+    <div class="side-panels">
+      <div class="panel">
+        <div class="panel-title">Ciclo detectado</div>
+        <div class="cycle-box">useCart<br/>↓<br/>useOrder<br/>↓<br/>useCart</div>
+        <div class="fix-box">// Solución sugerida:<br/>extraer → useCheckout</div>
+      </div>
+      <div class="panel" style="flex:1;">
+        <div class="panel-title">Detalle del nodo</div>
+        <div id="node-detail" style="color:var(--muted);font-size:12px;font-family:var(--mono);">← clic en un nodo</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Capas</div>
+        <div class="legend-row">
+          <div class="leg"><div class="leg-dot" style="background:#D8B4FE;"></div>Entrypoint</div>
+          <div class="leg"><div class="leg-dot" style="background:#BFDBFE;"></div>Screens</div>
+          <div class="leg"><div class="leg-dot" style="background:#21967e;"></div>Components</div>
+          <div class="leg"><div class="leg-dot" style="background:#FDE68A;"></div>Hooks</div>
+          <div class="leg"><div class="leg-dot" style="background:#9CA3AF;"></div>Services</div>
+          <div class="leg"><div class="leg-dot" style="background:#FFCCCC;border:1px solid #f87171;"></div>Ciclo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE SECTION -->
+<section id="code">
+  <div class="section-label">Código fuente</div>
+  <div class="section-title">El analizador explicado</div>
+  <div class="code-wrap">
+    <div class="code-tabs">
+      <button class="tab-btn active" onclick="showTab('tab-graph')">DEPENDENCY_GRAPH</button>
+      <button class="tab-btn" onclick="showTab('tab-dfs')">detect_cycles()</button>
+      <button class="tab-btn" onclick="showTab('tab-dot')">generate_outputs()</button>
+    </div>
+    <div id="tab-graph" class="tab-panel active">
+      <div class="code-header">
+        <div class="dot" style="background:#f87171;"></div>
+        <div class="dot" style="background:#fbbf24;"></div>
+        <div class="dot" style="background:#05d350;"></div>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:8px;">analizador_delivery.py</span>
+      </div>
+      <div class="code-body"><pre>
+<cm># El grafo es un diccionario Python puro.</cm>
+<cm># Cada clave es un módulo; su valor es</cm>
+<cm># la lista de módulos que importa.</cm>
+
+<kw>class</kw> <fn>DeliveryDependencyAnalyzer</fn>:
+
+    DEPENDENCY_GRAPH = {
+        <st>"app/page.tsx"</st>: [
+            <st>"screens/HomeScreen"</st>,
+            <st>"screens/CartScreen"</st>,
+            <st>"screens/OrderScreen"</st>,
+        ],
+        <st>"screens/CartScreen"</st>: [
+            <st>"components/ProductItem"</st>,
+            <st>"hooks/useCart"</st>,
+        ],
+        <cm># CICLO INTENCIONAL ↓</cm>
+        <st>"hooks/useCart"</st>: [
+            <st>"services/orderApi"</st>,
+            <st>"hooks/useOrder"</st>,   <cm># ← importa useOrder</cm>
+        ],
+        <st>"hooks/useOrder"</st>: [
+            <st>"services/orderApi"</st>,
+            <st>"hooks/useCart"</st>,    <cm># ← importa useCart → CICLO</cm>
+        ],
+        <cm># ... 11 módulos más</cm>
+    }
+</pre></div>
+    </div>
+    <div id="tab-dfs" class="tab-panel">
+      <div class="code-header">
+        <div class="dot" style="background:#f87171;"></div>
+        <div class="dot" style="background:#fbbf24;"></div>
+        <div class="dot" style="background:#4ade80;"></div>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:8px;">detect_cycles() — DFS con pila de recursión</span>
+      </div>
+      <div class="code-body"><pre>
+<kw>def</kw> <fn>detect_cycles</fn>(<nm>self</nm>):
+    visited  = <fn>set</fn>()   <cm># nodos ya procesados</cm>
+    rec_stack = <fn>set</fn>()  <cm># nodos en el camino actual</cm>
+    path     = []       <cm># camino para reconstruir el ciclo</cm>
+
+    <kw>def</kw> <fn>dfs</fn>(<nm>u</nm>):
+        visited.add(<nm>u</nm>)
+        rec_stack.add(<nm>u</nm>)
+        path.append(<nm>u</nm>)
+
+        <kw>for</kw> v <kw>in</kw> <nm>self</nm>.graph.get(<nm>u</nm>, []):
+            <kw>if</kw> v <kw>in</kw> rec_stack:
+                <cm># v ya está en el camino actual → CICLO</cm>
+                idx = path.index(v)
+                new_cycle = path[idx:] + [v]
+                <nm>self</nm>.cycles.append(new_cycle)
+
+            <kw>elif</kw> v <kw>not in</kw> visited:
+                <fn>dfs</fn>(v)  <cm># explorar más profundo</cm>
+
+        rec_stack.remove(<nm>u</nm>)  <cm># salir del camino actual</cm>
+        path.pop()
+
+    <kw>for</kw> node <kw>in</kw> <nm>self</nm>.graph:
+        <kw>if</kw> node <kw>not in</kw> visited:
+            <fn>dfs</fn>(node)
+
+<cm># Resultado para nuestra app:</cm>
+<cm># cycles = [["hooks/useCart", "hooks/useOrder", "hooks/useCart"]]</cm>
+</pre></div>
+    </div>
+    <div id="tab-dot" class="tab-panel">
+      <div class="code-header">
+        <div class="dot" style="background:#f87171;"></div>
+        <div class="dot" style="background:#fbbf24;"></div>
+        <div class="dot" style="background:#4ade80;"></div>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:8px;">generate_outputs() — JSON + Graphviz .dot</span>
+      </div>
+      <div class="code-body"><pre>
+<kw>def</kw> <fn>generate_outputs</fn>(<nm>self</nm>):
+    <cm># 1. Reporte JSON con metadata + ciclos</cm>
+    report = {
+        <st>"metadata"</st>: {
+            <st>"project"</st>: <st>"Delivery App"</st>,
+            <st>"total_modules"</st>: <fn>len</fn>(<nm>self</nm>.graph),
+            <st>"total_cycles"</st>:  <fn>len</fn>(<nm>self</nm>.cycles),
+        },
+        <st>"cycles_detected"</st>: <nm>self</nm>.cycles,
+        <st>"full_graph"</st>:      <nm>self</nm>.graph,
+    }
+
+    <cm># 2. Archivo .dot para Graphviz</cm>
+    <cm>#    Los nodos críticos se colorean en rojo</cm>
+    critical = <fn>set</fn>(n <kw>for</kw> c <kw>in</kw> <nm>self</nm>.cycles <kw>for</kw> n <kw>in</kw> c)
+
+    <kw>for</kw> node <kw>in</kw> layers[<st>"Hooks"</st>]:
+        color  = <st>"#FFCCCC"</st> <kw>if</kw> node <kw>in</kw> critical <kw>else</kw> <st>"#FDE68A"</st>
+        border = <st>'color="#CC0000"'</st> <kw>if</kw> node <kw>in</kw> critical <kw>else</kw> <st>'color="#666"'</st>
+        label  = DISPLAY_NAMES.get(node, node)
+        f.write(<py>f</py><st>'"{node}" [label="{label}", fillcolor="{color}"];\n'</st>)
+
+<cm># Ejecutar: python analizador_delivery.py</cm>
+<cm># → dependency_report.json</cm>
+<cm># → dependency_graph.dot</cm>
+</pre></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">Explicación</div>
+  <div class="section-title">Cómo funciona el analizador</div>
+  <div class="steps">
+    <div class="step fade-in">
+      <div class="step-num">01 / GRAFO</div>
+      <div class="step-title">Construir el grafo</div>
+      <div class="step-desc">Cada módulo es un nodo. Cada import es una arista dirigida. Se almacena como diccionario <code style="font-family:var(--mono);color:var(--accent);">{ módulo: [deps] }</code>.</div>
+      <div class="step-code">app/page.tsx<br/>  → HomeScreen<br/>  → CartScreen<br/>  → OrderScreen</div>
+    </div>
+    <div class="step fade-in">
+      <div class="step-num">02 / DFS</div>
+      <div class="step-title">Detectar ciclos</div>
+      <div class="step-desc">Se usa DFS con una pila de recursión. Si durante la exploración encontramos un nodo que ya está en el camino actual, hay un ciclo.</div>
+      <div class="step-code">useCart → useOrder<br/>useOrder → useCart<br/><span style="color:var(--danger);">⚠ CICLO detectado</span></div>
+    </div>
+    <div class="step fade-in">
+      <div class="step-num">03 / OUTPUT</div>
+      <div class="step-title">Generar entregables</div>
+      <div class="step-desc">Produce un <code style="font-family:var(--mono);color:var(--accent);">.json</code> con el reporte completo y un <code style="font-family:var(--mono);color:var(--accent);">.dot</code> para Graphviz con nodos críticos en rojo.</div>
+      <div class="step-code">→ dependency_report.json<br/>→ dependency_graph.dot<br/><span style="color:var(--accent);">sin pip install</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>delivery/analyzer · Python 3.6+ · stdlib only</p>
+  <p style="color:var(--accent);">json · os · re</p>
+</footer>
+
+<script>
+const NODES = [
+  {id:"app/page.tsx",             label:"Inicio de la app",     layer:"Entrypoint",  x:250, y:14},
+  {id:"screens/HomeScreen",       label:"Pantalla principal",   layer:"Screens",     x:60,  y:90},
+  {id:"screens/CartScreen",       label:"Carrito",              layer:"Screens",     x:220, y:90},
+  {id:"screens/OrderScreen",      label:"Pedido",               layer:"Screens",     x:380, y:90},
+  {id:"components/RestaurantCard",label:"Rest. Card",           layer:"Components",  x:14,  y:185},
+  {id:"components/ProductItem",   label:"Ítem menú",            layer:"Components",  x:150, y:185},
+  {id:"components/OrderTracker",  label:"Seguimiento",          layer:"Components",  x:290, y:185},
+  {id:"components/MapView",       label:"Mapa",                 layer:"Components",  x:430, y:185},
+  {id:"hooks/useRestaurants",     label:"useRestaurants",       layer:"Hooks",       x:20,  y:280, cycle:false},
+  {id:"hooks/useCart",            label:"useCart",              layer:"Hooks",       x:160, y:280, cycle:true},
+  {id:"hooks/useOrder",           label:"useOrder",             layer:"Hooks",       x:290, y:280, cycle:true},
+  {id:"hooks/useLocation",        label:"useLocation",          layer:"Hooks",       x:420, y:280},
+  {id:"services/restaurantApi",   label:"API restaurantes",     layer:"Services",    x:20,  y:368},
+  {id:"services/orderApi",        label:"API pedidos",          layer:"Services",    x:195, y:368},
+  {id:"services/trackingApi",     label:"API rastreo GPS",      layer:"Services",    x:370, y:368},
+];
+
+const EDGES = [
+  ["app/page.tsx","screens/HomeScreen"],
+  ["app/page.tsx","screens/CartScreen"],
+  ["app/page.tsx","screens/OrderScreen"],
+  ["screens/HomeScreen","components/RestaurantCard"],
+  ["screens/HomeScreen","hooks/useRestaurants"],
+  ["screens/CartScreen","components/ProductItem"],
+  ["screens/CartScreen","hooks/useCart"],
+  ["screens/OrderScreen","components/OrderTracker"],
+  ["screens/OrderScreen","components/MapView"],
+  ["screens/OrderScreen","hooks/useOrder"],
+  ["components/RestaurantCard","hooks/useRestaurants"],
+  ["components/ProductItem","hooks/useCart"],
+  ["components/OrderTracker","hooks/useOrder"],
+  ["components/OrderTracker","services/trackingApi"],
+  ["components/MapView","hooks/useLocation"],
+  ["components/MapView","services/trackingApi"],
+  ["hooks/useCart","services/orderApi"],
+  ["hooks/useCart","hooks/useOrder"],
+  ["hooks/useOrder","services/orderApi"],
+  ["hooks/useOrder","hooks/useCart"],
+  ["hooks/useRestaurants","services/restaurantApi"],
+  ["hooks/useLocation","services/trackingApi"],
+];
+
+const CYCLE_SET = new Set(["hooks/useCart->hooks/useOrder","hooks/useOrder->hooks/useCart"]);
+
+const DESCS = {
+  "app/page.tsx":"Punto de entrada de la aplicación.",
+  "screens/HomeScreen":"Lista restaurantes cercanos.",
+  "screens/CartScreen":"Gestiona productos del carrito.",
+  "screens/OrderScreen":"Estado actual del pedido.",
+  "components/RestaurantCard":"Tarjeta visual de cada restaurante.",
+  "components/ProductItem":"Ítem individual del menú.",
+  "components/OrderTracker":"Estado en tiempo real.",
+  "components/MapView":"Posición del repartidor.",
+  "hooks/useRestaurants":"Fetch lista de restaurantes.",
+  "hooks/useCart":"Estado del carrito — CICLO con useOrder.",
+  "hooks/useOrder":"Lógica del pedido — CICLO con useCart.",
+  "hooks/useLocation":"GPS del usuario.",
+  "services/restaurantApi":"GET /restaurants",
+  "services/orderApi":"POST /orders",
+  "services/trackingApi":"WebSocket GPS.",
+};
+
+const COLORS = {
+  Entrypoint:{fill:"#D8B4FE",stroke:"#9333ea",text:"#3C3489"},
+  Screens:   {fill:"#BFDBFE",stroke:"#3b82f6",text:"#0C447C"},
+  Components:{fill:"#99F6E4",stroke:"#0d9488",text:"#085041"},
+  Hooks:     {fill:"#FDE68A",stroke:"#d97706",text:"#633806"},
+  Services:  {fill:"#9CA3AF",stroke:"#6b7280",text:"#1f2937"},
+};
+
+const NW=120, NH=34;
+const svg=document.getElementById("graph-svg");
+const gE=document.getElementById("g-edges");
+const gN=document.getElementById("g-nodes");
+const detail=document.getElementById("node-detail");
+const nodeMap={};
+NODES.forEach(n=>nodeMap[n.id]=n);
+
+function center(n){return{x:n.x+NW/2,y:n.y+NH/2};}
+
+function drawEdges(){
+  gE.innerHTML="";
+  EDGES.forEach(([a,b])=>{
+    const s=nodeMap[a],d=nodeMap[b];if(!s||!d)return;
+    const sc=center(s),dc=center(d);
+    const dx=dc.x-sc.x,dy=dc.y-sc.y,len=Math.sqrt(dx*dx+dy*dy)||1;
+    const ux=dx/len,uy=dy/len;
+    const x1=sc.x+ux*NW/2,y1=sc.y+uy*NH/2;
+    const x2=dc.x-ux*(NW/2+5),y2=dc.y-uy*(NH/2+5);
+    const isCy=CYCLE_SET.has(a+"->"+b);
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",`M${x1},${y1} L${x2},${y2}`);
+    p.setAttribute("fill","none");
+    p.setAttribute("stroke",isCy?"#f87171":"#2e3340");
+    p.setAttribute("stroke-width",isCy?"1.8":"0.8");
+    if(isCy)p.setAttribute("stroke-dasharray","5 3");
+    p.setAttribute("marker-end","url(#arr)");
+    gE.appendChild(p);
+  });
+}
+
+function showDetail(n){
+  const outs=EDGES.filter(([a])=>a===n.id).map(([,b])=>b);
+  const ins=EDGES.filter(([,b])=>b===n.id).map(([a])=>a);
+  const col=n.cycle?"#f87171":"#6ee7b7";
+  detail.innerHTML=`
+    <div class="node-name-detail" style="color:${col}">${n.label}</div>
+    <div style="font-family:var(--mono);font-size:11px;color:#6b7280;margin-bottom:10px;">${DESCS[n.id]||""}</div>
+    ${outs.length?`<div style="font-size:10px;color:#6b7280;font-family:var(--mono);margin-bottom:4px;">DEPENDE DE</div><div style="margin-bottom:10px;">${outs.map(id=>{const nd=nodeMap[id];const cy=n.cycle&&nd&&nd.cycle;return`<span class="dep-chip${cy?" cyc":""}">${nd?nd.label:id}</span>`;}).join("")}</div>`:""}
+    ${ins.length?`<div style="font-size:10px;color:#6b7280;font-family:var(--mono);margin-bottom:4px;">USADO POR</div><div>${ins.map(id=>{const nd=nodeMap[id];return`<span class="dep-chip used">${nd?nd.label:id}</span>`;}).join("")}</div>`:""}
+  `;
+}
+
+function drawNodes(){
+  gN.innerHTML="";
+  NODES.forEach(n=>{
+    const c=n.cycle?{fill:"#FFCCCC",stroke:"#f87171",text:"#7f1d1d"}:COLORS[n.layer];
+    const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.style.cursor="grab";
+
+    const rect=document.createElementNS("http://www.w3.org/2000/svg","rect");
+    rect.setAttribute("width",NW);rect.setAttribute("height",NH);
+    rect.setAttribute("rx","7");rect.setAttribute("fill",c.fill);
+    rect.setAttribute("stroke",c.stroke);rect.setAttribute("stroke-width",n.cycle?"1.8":"0.8");
+
+    const txt=document.createElementNS("http://www.w3.org/2000/svg","text");
+    txt.setAttribute("x",NW/2);txt.setAttribute("y",NH/2);
+    txt.setAttribute("text-anchor","middle");txt.setAttribute("dominant-baseline","central");
+    txt.setAttribute("font-size","11");txt.setAttribute("font-weight","500");
+    txt.setAttribute("font-family","'DM Mono',monospace");
+    txt.setAttribute("fill",c.text);txt.setAttribute("pointer-events","none");
+    txt.textContent=n.label;
+
+    g.appendChild(rect);g.appendChild(txt);
+    g.setAttribute("transform",`translate(${n.x},${n.y})`);
+
+    let drag=false,ox,oy;
+    g.addEventListener("mousedown",e=>{
+      drag=true;e.preventDefault();
+      const vb=svg.viewBox.baseVal,br=svg.getBoundingClientRect();
+      ox=e.clientX*(vb.width/br.width)-n.x;
+      oy=e.clientY*(vb.height/br.height)-n.y;
+    });
+    window.addEventListener("mousemove",e=>{
+      if(!drag)return;
+      const vb=svg.viewBox.baseVal,br=svg.getBoundingClientRect();
+      n.x=Math.max(0,Math.min(vb.width-NW,e.clientX*(vb.width/br.width)-ox));
+      n.y=Math.max(0,Math.min(vb.height-NH,e.clientY*(vb.height/br.height)-oy));
+      g.setAttribute("transform",`translate(${n.x},${n.y})`);
+      drawEdges();
+    });
+    window.addEventListener("mouseup",()=>{drag=false;});
+    g.addEventListener("click",()=>showDetail(n));
+    gN.appendChild(g);
+  });
+}
+
+drawEdges();
+drawNodes();
+
+function showTab(id){
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  event.target.classList.add("active");
+}
+
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible");});
+},{threshold:.15});
+document.querySelectorAll(".fade-in").forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
